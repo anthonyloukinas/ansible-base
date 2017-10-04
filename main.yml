@@ -1,0 +1,40 @@
+---
+- hosts: dev
+  # This can be any user, we are just going to default to root for now.
+  remote_user: root
+
+  tasks :
+    # Upgrade all packages except the excluded packages.
+    - name: upgrade all packages, excluding kernel & foo related packages
+      yum:
+        name: '*'
+        state: latest
+        exclude: kernel*,java*,mysql*,python*
+
+    # Check /var/log/yum.log for packages updated today (current date). These will be used to generate our report.
+    - name: Check for packages that were updated.
+      ignore_errors: yes
+      shell: grep "`date '+%b %d'`" /var/log/yum.log
+      register: updated
+
+    # Debugging purposes
+    # debugs, debugs, debugs :)
+    - name: Debug
+      debug:
+        msg: "{{ updated }}"
+    - name: Debug
+      debug:
+        msg: "{{ updated.results|map(attribute='stdout_lines')|list }}"
+
+    # We are using the mail module to send messages from localhost. All of the following params are configurable. 
+    # You can either comment out the attach param or add files you'd like to attach via the email.
+    - mail:
+        host: localhost
+        port: 25
+        from: systems@company.com (Systems Team)
+        to: SysAdmins <admins@company.com>
+        #attach: /etc/passwd /tmp/audit/report.html
+        subject: {{ ansible_hostname }} automated update report
+        body: '{{ item }}'
+      with_items: "{{ updated.results|map(attribute='stdout_lines')|list }}"
+      when: updated.stdout
