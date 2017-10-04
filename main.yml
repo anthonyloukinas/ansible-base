@@ -34,7 +34,7 @@
         from: systems@company.com (Systems Team)
         to: SysAdmins <admins@company.com>
         #attach: /etc/passwd /tmp/audit/report.html
-        subject: {{ ansible_hostname }} automated update report
+        subject: '{{ ansible_hostname }} automated update report'
         body: '{{ item }}'
       with_items: "{{ updated.results|map(attribute='stdout_lines')|list }}"
       when: updated.stdout
